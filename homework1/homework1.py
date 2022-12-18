@@ -1,77 +1,120 @@
 #%% 設定工作目錄
-import os
-wkDir = "D:/Machine Learning/homework1/";   os.chdir(wkDir) #設定工作目錄
 
-#%%載入所需軟件包
+import os
+wkDir = "F:/Machine Learning/homework1/";   os.chdir(wkDir) #設定工作目錄
+
+#%%Read Dataset
+
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from sklearn.cluster import KMeans
-from sklearn.metrics import silhouette_score
+from matplotlib.colors import ListedColormap
 
-#%%匯入DATA
-data = pd.read_csv( 'data.csv', encoding = "big5" )
+blobs = pd.read_csv('data.csv')
+colnames = list(blobs.columns[:])
+blobs.head()
+
+# %%Define k to initiate the centroids
+
+def initiate_centroids(k, dset):
+    centroids = dset.sample(k)
+    return centroids
+
+np.random.seed(42)
+k = 4
+df = blobs[['column1','column2','column3','column4']]
+centroids = initiate_centroids(k, df)
+centroids
+
+# %%Calculate distance between centroids and data points
+
+def rsserr(a,b):
+    return np.sqrt(np.sum((a-b)**2))
+
+for i, centroid in enumerate(range(centroids.shape[0])):
+    err = rsserr(centroids.iloc[centroid,:], df.iloc[36,:])
+    print('Error for centroid {0}: {1:.2f}'.format(i, err))
+
+# %%Assign data to centroids
+
+def centroid_assignation(dset, centroids):
+    k = centroids.shape[0]
+    n = dset.shape[0]
+    assignation = []
+    assign_errors = []
+
+    for obs in range(n):
+        #Estimate error
+        all_errors = np.array([])
+        for centroid in range(k):
+            err = rsserr(centroids.iloc[centroid, :], dset.iloc[obs,:])
+            all_errors = np.append(all_errors, err)
+
+        # Get the nearest centroid and the error
+        nearest_centroid =  np.where(all_errors==np.amin(all_errors))[0].tolist()[0]
+        nearest_centroid_error = np.amin(all_errors)
+
+        # Add values to corresponding lists
+        assignation.append(nearest_centroid)
+        assign_errors.append(nearest_centroid_error)
+
+    return assignation, assign_errors
+
+df['centroid'], df['error'] = centroid_assignation(df, centroids)
+df.head()
+
+# %% kmeans
+
+def kmeans(dset, k, tol=1e-4):
+
+    working_dset = dset.copy()
+
+    err = []
+    goahead = True
+    j = 0
+    
+    # Step 2: Initiate clusters by defining centroids 
+    centroids = initiate_centroids(k, dset)
+
+    while(goahead):
+        # Step 3 and 4 - Assign centroids and calculate error
+        working_dset['centroid'], j_err = centroid_assignation(working_dset, centroids) 
+        err.append(sum(j_err))
+        
+        # Step 5 - Update centroid position
+        centroids = working_dset.groupby('centroid').agg('mean').reset_index(drop = True)
+
+        # Step 6 - Restart the iteration
+        if j>0:
+            # Is the error less than a tolerance (1E-4)
+            if err[j-1]-err[j]<=tol:
+                goahead = False
+        j+=1
+
+    working_dset['centroid'], j_err = centroid_assignation(working_dset, centroids)
+    centroids = working_dset.groupby('centroid').agg('mean').reset_index(drop = True)
+    return working_dset['centroid'], j_err, centroids
+
+np.random.seed(42)
+df['centroid'], df['error'], centroids =  kmeans(df[['column1','column2','column3','column4']], 4)
+df.head()
+
+centroids
 
 
-#%%求分群數
-silhouette_avg = []#側影
-distortions = []#手肘
-for i in range(2,11):
-    KM_fit = KMeans(n_clusters = i).fit(data)
-    silhouette_avg.append(silhouette_score(data, KM_fit.labels_))
-    distortions.append(KM_fit.inertia_)
-plt.plot(range(2,11), silhouette_avg)
-plt.plot(range(2, 11), distortions, marker='o')
-plt.xlabel('Number of clusters')
-plt.ylabel('Distortion')
+# %%elbow to find best k
+err_total = []
+n = 10
+
+for i in range(n):
+    label, my_errs, centroid = kmeans(df[['column1','column2','column3','column4']], i+1)
+    err_total.append(sum(my_errs))
+fig, ax = plt.subplots(figsize=(8, 6))
+plt.plot(range(1,n+1), err_total, linewidth=3, marker='o')
+ax.set_xlabel(r'Number of clusters', fontsize=14)
+ax.set_ylabel(r'Total error', fontsize=14)
+plt.xticks(fontsize=12)
+plt.yticks(fontsize=12)
 plt.show()
 
-#%%K-means
-KM = KMeans(n_clusters=4).fit(data)
-#KM.fit(data)
-KM.predict(data)
-
-#中心點座標
-centers = KM.cluster_centers_
-
-#%%視覺化
-plt.subplot()
-#plt.title(f'KMeans={selected_K} groups')
-plt.scatter(data.column1, data.column2, data.column3, c=KM.predict(data), cmap=plt.cm.Set3)
-plt.scatter(centers.T[0], centers.T[1], marker='^', color='orange')
-for i in range(centers.shape[0]): # 標上各分組中心點
-    plt.text(centers.T[0][i], centers.T[1][i], str(i + 1),
-             fontdict={'color': 'red', 'weight': 'bold', 'size': 24})
-
-#%%
-from sklearn.datasets import make_blobs
-dx, dy = make_blobs(n_samples=1000, n_features=2, centers=5, random_state=52)
-kmeans = KMeans(n_clusters=3)
-kmeans.fit(dx)
-# 預測新的目標值 label
-new_dy = kmeans.predict(dx)
-plt.rcParams['font.size'] = 14
-plt.figure(figsize=(16, 8))
-# 以不同顏色畫出原始的 10 群資料
-plt.subplot(121)
-plt.title('Original data (5 groups)')
-plt.scatter(dx.T[0], dx.T[1], c=dy, cmap=plt.cm.Set1)
-# 根據重新分成的 5 組來畫出資料
-plt.subplot(122)
-plt.title('KMeans=3 groups')
-plt.scatter(dx.T[0], dx.T[1], c=new_dy, cmap=plt.cm.Set1)
-# 顯示圖表
-plt.tight_layout()
-plt.show()
-
-#%%求分群數
-silhouette_avg = []#側影
-distortions = []#手肘
-for i in range(2,11):
-    KM_fit = KMeans(n_clusters = i).fit(dx)
-    silhouette_avg.append(silhouette_score(dx, KM_fit.labels_))
-    distortions.append(KM_fit.inertia_)
-plt.plot(range(2,11), silhouette_avg)
-#plt.plot(range(2, 11), distortions, marker='o')
-plt.xlabel('Number of clusters')
-plt.ylabel('Distortion')
-plt.show()
+# %%
