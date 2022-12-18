@@ -14,19 +14,6 @@ blobs = pd.read_csv('data.csv')
 colnames = list(blobs.columns[:])
 blobs.head()
 
-# %%original data distribution
-
-customcmap = ListedColormap(["crimson", "mediumblue", "darkmagenta"])
-
-fig, ax = plt.subplots(figsize=(8, 6))
-plt.scatter(x=blobs['column1'], y=blobs['column2'], s=150, 
-            cmap = customcmap)
-ax.set_xlabel(r'column1', fontsize=14)
-ax.set_ylabel(r'column2', fontsize=14)
-plt.xticks(fontsize=12)
-plt.yticks(fontsize=12)
-plt.show()
-
 # %%Define k to initiate the centroids
 
 def initiate_centroids(k, dset):
@@ -34,7 +21,7 @@ def initiate_centroids(k, dset):
     return centroids
 
 np.random.seed(42)
-k = 3
+k = 4
 df = blobs[['column1','column2','column3','column4']]
 centroids = initiate_centroids(k, df)
 centroids
@@ -76,42 +63,12 @@ def centroid_assignation(dset, centroids):
 df['centroid'], df['error'] = centroid_assignation(df, centroids)
 df.head()
 
-# %%original centroids distribution
+# %% kmeans
 
-fig, ax = plt.subplots(figsize=(8, 6))
-plt.scatter(df.iloc[:,0], df.iloc[:,1],  marker = 'o', 
-            c=df['centroid'].astype('category'), 
-            cmap = customcmap, s=80, alpha=0.5)
-plt.scatter(centroids.iloc[:,0], centroids.iloc[:,1],  
-            marker = 's', s=200, c=[0, 1, 2], 
-            cmap = customcmap)
-print("The total error is {0:.2f}".format(df['error'].sum()))
+def kmeans(dset, k, tol=1e-4):
 
-# %%Update centroid location distribution
-
-centroids = df.groupby('centroid').agg('mean').loc[:, colnames].reset_index(drop = True)
-centroids
-
-fig, ax = plt.subplots(figsize=(8, 6))
-plt.scatter(df.iloc[:,0], df.iloc[:,1],  marker = 'o', 
-            c=df['centroid'].astype('category'), 
-            cmap = customcmap, s=80, alpha=0.5)
-plt.scatter(centroids.iloc[:,0], centroids.iloc[:,1],  
-            marker = 's', s=200,
-            c=[0, 1, 2], cmap = customcmap)
-ax.set_xlabel(r'column1', fontsize=14)
-ax.set_ylabel(r'column2', fontsize=14)
-plt.xticks(fontsize=12)
-plt.yticks(fontsize=12)
-plt.show()
-
-# %% Repeat steps 3-5
-
-def kmeans(dset, k=2, tol=1e-4):
-    # Let us work in a copy, so we don't mess the original
     working_dset = dset.copy()
-    # We define some variables to hold the error, the 
-    # stopping signal and a counter for the iterations
+
     err = []
     goahead = True
     j = 0
@@ -139,20 +96,23 @@ def kmeans(dset, k=2, tol=1e-4):
     return working_dset['centroid'], j_err, centroids
 
 np.random.seed(42)
-df['centroid'], df['error'], centroids =  kmeans(df[['column1','column2','column3','column4']], 3)
+df['centroid'], df['error'], centroids =  kmeans(df[['column1','column2','column3','column4']], 4)
 df.head()
 
 centroids
 
-#%% Final centroid location distribution
+
+# %%elbow to find best k
+err_total = []
+n = 10
+
+for i in range(n):
+    label, my_errs, centroid = kmeans(df[['column1','column2','column3','column4']], i+1)
+    err_total.append(sum(my_errs))
 fig, ax = plt.subplots(figsize=(8, 6))
-plt.scatter(df.iloc[:,0], df.iloc[:,1],  marker = 'o', 
-            c=df['centroid'].astype('category'), 
-            cmap = customcmap, s=80, alpha=0.5)
-plt.scatter(centroids.iloc[:,0], centroids.iloc[:,1],  
-            marker = 's', s=200, c=[0, 1, 2], cmap = customcmap)
-ax.set_xlabel(r'column1', fontsize=14)
-ax.set_ylabel(r'column2', fontsize=14)
+plt.plot(range(1,n+1), err_total, linewidth=3, marker='o')
+ax.set_xlabel(r'Number of clusters', fontsize=14)
+ax.set_ylabel(r'Total error', fontsize=14)
 plt.xticks(fontsize=12)
 plt.yticks(fontsize=12)
 plt.show()
