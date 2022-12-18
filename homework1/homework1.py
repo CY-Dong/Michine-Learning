@@ -8,7 +8,6 @@ wkDir = "F:/Machine Learning/homework1/";   os.chdir(wkDir) #設定工作目錄
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from matplotlib.colors import ListedColormap
 
 data = pd.read_csv('data/data.csv')
 colnames = list(data.columns[:])
@@ -16,11 +15,11 @@ data.head()
 
 # %%Define k to initiate the centroids
 
-def initiate_centroids(k, dset):
-    centroids = dset.sample(k)
+def initiate_centroids(k, dataset):
+    centroids = dataset.sample(k)
     return centroids
 
-np.random.seed(42)
+#np.random.seed(42)
 k = 4
 df = data[['column1','column2','column3','column4']]
 centroids = initiate_centroids(k, df)
@@ -37,9 +36,9 @@ for i, centroid in enumerate(range(centroids.shape[0])):
 
 # %%Assign data to centroids
 
-def centroid_assignation(dset, centroids):
+def centroid_assignation(dataset, centroids):
     k = centroids.shape[0]
-    n = dset.shape[0]
+    n = dataset.shape[0]
     assignation = []
     assign_errors = []
 
@@ -47,7 +46,7 @@ def centroid_assignation(dset, centroids):
         #Estimate error
         all_errors = np.array([])
         for centroid in range(k):
-            err = rsserr(centroids.iloc[centroid, :], dset.iloc[obs,:])
+            err = rsserr(centroids.iloc[centroid, :], dataset.iloc[obs,:])
             all_errors = np.append(all_errors, err)
 
         # Get the nearest centroid and the error
@@ -65,41 +64,41 @@ df.head()
 
 # %% kmeans
 
-def kmeans(dset, k, tol=1e-4):
+def kmeans(dataset, k, tol=1e-4):
 
-    working_dset = dset.copy()
+    working_dataset = dataset.copy()
 
     err = []
     goahead = True
     j = 0
     
-    # Step 2: Initiate clusters by defining centroids 
-    centroids = initiate_centroids(k, dset)
+    #Initiate clusters by defining centroids 
+    original_centroids = initiate_centroids(k, dataset)
 
     while(goahead):
-        # Step 3 and 4 - Assign centroids and calculate error
-        working_dset['centroid'], j_err = centroid_assignation(working_dset, centroids) 
+        #Assign centroids and calculate error
+        working_dataset['centroid'], j_err = centroid_assignation(working_dataset, original_centroids) 
         err.append(sum(j_err))
         
-        # Step 5 - Update centroid position
-        centroids = working_dset.groupby('centroid').agg('mean').reset_index(drop = True)
+        #Update centroid position
+        centroids = working_dataset.groupby('centroid').agg('mean').reset_index(drop = True)
 
-        # Step 6 - Restart the iteration
+        #Restart the iteration
         if j>0:
             # Is the error less than a tolerance (1E-4)
             if err[j-1]-err[j]<=tol:
                 goahead = False
         j+=1
 
-    working_dset['centroid'], j_err = centroid_assignation(working_dset, centroids)
-    centroids = working_dset.groupby('centroid').agg('mean').reset_index(drop = True)
-    return working_dset['centroid'], j_err, centroids
+    working_dataset['centroid'], j_err = centroid_assignation(working_dataset, centroids)
+    centroids = working_dataset.groupby('centroid').agg('mean').reset_index(drop = True)
+    return working_dataset['centroid'], j_err, centroids, original_centroids
 
-np.random.seed(42)
-df['centroid'], df['error'], centroids =  kmeans(df[['column1','column2','column3','column4']], 4)
-df.head()
+#np.random.seed(42)
+#df['centroid'], df['error'], centroids =  kmeans(df[['column1','column2','column3','column4']], 4)
+#df.head()
 
-centroids
+#centroids
 
 
 # %%elbow to find best k
@@ -117,4 +116,9 @@ plt.xticks(fontsize=12)
 plt.yticks(fontsize=12)
 plt.show()
 
+# %%
+if __name__ == '__main__':
+    df['centroid'], df['error'], centroids, original_centroids =  kmeans(df[['column1','column2','column3','column4']], 4)
+    print("Total error: ",sum(df['error']))
+    print(original_centroids)
 # %%
