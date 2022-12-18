@@ -10,9 +10,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 
-blobs = pd.read_csv('data.csv')
-colnames = list(blobs.columns[:])
-blobs.head()
+data = pd.read_csv('data/data.csv')
+colnames = list(data.columns[:])
+data.head()
 
 # %%Define k to initiate the centroids
 
@@ -22,7 +22,7 @@ def initiate_centroids(k, dset):
 
 np.random.seed(42)
 k = 4
-df = blobs[['column1','column2','column3','column4']]
+df = data[['column1','column2','column3','column4']]
 centroids = initiate_centroids(k, df)
 centroids
 
