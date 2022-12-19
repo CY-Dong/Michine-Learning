@@ -1,0 +1,9 @@
+R G B magnitude(of gradient) direction(of gradient) 
+
+e.g. ..\heart\train\pos001.txt
+
+		R	G	B	mag	dir
+1st pixel	41	17	89	4	-1.81578
+2nd pixel	39	8	93	6	0.463648
+3rd pixel	44	1	114	4	2.67795
+.....
