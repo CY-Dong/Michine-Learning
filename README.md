@@ -1,2 +1,2 @@
 # Michine-Learning
-#### CYCU ML homework 2022
+#### ML homework 2022
